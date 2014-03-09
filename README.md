@@ -8,7 +8,9 @@ Features
 ===================
 
 1) Bloom Shader
+
 2) Radial Blur Shader
+
 3) Completely custamizable via LUA-Script (even uniforms)
 
 Installation
