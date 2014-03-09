@@ -1,0 +1,1 @@
+/usr/bin/c++  -fPIC    -shared -Wl,-soname,Game.so -o "/run/media/yannick/Seagate Expansion Drive/MaratisProjects/pp-test/Game.so" CMakeFiles/Game.dir/Game.cpp.o CMakeFiles/Game.dir/GamePlugin.cpp.o CMakeFiles/Game.dir/main.cpp.o CMakeFiles/Game.dir/PostProcessor.cpp.o CMakeFiles/Game.dir/Shader.cpp.o 
