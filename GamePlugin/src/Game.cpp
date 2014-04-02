@@ -40,7 +40,7 @@ void Game::onBegin()
 {
 	printf("\nGame starts now\n");
 
-    postProcessor.EraseTextures();
+	postProcessor.EraseTextures();
 	postProcessor.UpdateResolution();
 
 	MEngine::getInstance()->getSystemContext()->getScreenSize(&windowWidth, &windowHeight);
@@ -51,6 +51,7 @@ void Game::onBegin()
 void Game::onEnd()
 {
     postProcessor.Clear();
+    postfxEnabled = false;
 }
 
 void Game::update()

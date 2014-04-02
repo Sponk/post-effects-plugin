@@ -103,7 +103,7 @@ int setFloatUniform()
 
 int setIntUniform()
 {
-    MEngine* engine = MEngine::getInstance();
+	MEngine* engine = MEngine::getInstance();
 	Game* game = (Game*) engine->getGame();
 	MScriptContext* script = engine->getScriptContext();
 
@@ -115,9 +115,28 @@ int setIntUniform()
     return 1;
 }
 
+int addCameraLayer()
+{
+	MEngine* engine = MEngine::getInstance();
+	Game* game = (Game*) engine->getGame();
+	MScriptContext* script = engine->getScriptContext();
+
+	if(script->getArgsNumber() != 3)
+        return 0;
+
+    bool postFX = script->getInteger(2);
+    MOCamera* camera = (MOCamera*) script->getPointer(1);
+    int scene = script->getInteger(0);
+
+    game->getPostProcessor()->AddCameraLayer(scene, camera, postFX);
+
+    return 1;
+}
+
 extern "C" void StartPlugin(void)
 {
 	// get engine
+	printf("Start plugin");
 	MEngine * engine = MEngine::getInstance();
     MScriptContext* script = engine->getScriptContext();
 
@@ -128,6 +147,8 @@ extern "C" void StartPlugin(void)
     script->addFunction("setIntUniform", setIntUniform);
 
     script->addFunction("enablePostProcessing", enablePostProcessing);
+
+    script->addFunction("addCameraLayer", addCameraLayer);
 
 	game = new Game();
 	engine->setGame(game);

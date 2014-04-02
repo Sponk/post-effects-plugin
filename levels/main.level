@@ -4,7 +4,7 @@
 
 	<properties currentScene="0" />
 
-	<Scene name="Scene-1">
+	<Scene name="mainScene">
 
 		<script file="../scripts/main.lua" />
 		<properties 
@@ -35,6 +35,21 @@
 				clearColor="0.200000 0.300000 0.400000"
 				ortho="false"
 				fov="60.000000"
+				clippingNear="1.000000"
+				clippingFar="1000.000000"
+				fog="false"
+				fogDistance="0.000000" />
+		</Camera>
+		<Camera name="Camera1">
+			<active value="true" />
+			<transform 
+				position="-1218.675049 -116.305664 -233.390839"
+				rotation="90.000000 -0.000000 0.000000"
+				scale="1.000000 1.000000 1.000000" />
+			<properties 
+				clearColor="0.200000 0.300000 0.400000"
+				ortho="true"
+				fov="600.000000"
 				clippingNear="1.000000"
 				clippingFar="1000.000000"
 				fog="false"
@@ -79,6 +94,74 @@
 			<active value="true" />
 			<transform 
 				position="2.790176 23.368099 26.941360"
+				rotation="0.000000 -0.000000 0.000000"
+				scale="1.000000 1.000000 1.000000" />
+			<properties 
+				invisible="false" />
+		</Entity>
+		<Text name="Text0" file="../fonts/Round Style/RoundStyleBasic.ttf">
+			<active value="true" />
+			<transform 
+				position="-1572.219849 163.222412 15.224308"
+				rotation="-90.000000 -0.000000 0.000000"
+				scale="1.000000 1.000000 1.000000" />
+			<properties 
+				size="16.000000"
+				align="Left"
+				color="1.000000 1.000000 1.000000 1.000000" />
+			<textData>
+				<![CDATA[Press <Left> or <Right> to control radial blur 
+
+and
+
+<Up> or <Down> to control bloom.
+
+Press <1> or <2> to switch between the effects.]]>
+			</textData>
+		</Text>
+
+	</Scene>
+	<Scene name="guiScene">
+
+		<properties 
+			data="Static"
+			gravity="0.000000 0.000000 -0.981000" />
+
+		<Light name="Light0">
+			<active value="true" />
+			<transform 
+				position="-1.967771 0.000000 58.921822"
+				rotation="0.000000 -0.000000 0.000000"
+				scale="1.000000 1.000000 1.000000" />
+			<properties 
+				radius="1000.000000"
+				color="1.000000 1.000000 1.000000"
+				intensity="1.000000"
+				spotAngle="180.000000"
+				spotExponent="0.000000"
+				shadow="false" />
+		</Light>
+		<Camera name="guiCam">
+			<active value="true" />
+			<transform 
+				position="0.000000 0.000000 82.823578"
+				rotation="0.000000 -0.000000 0.000000"
+				scale="1.000000 1.000000 1.000000" />
+			<properties 
+				clearColor="0.200000 0.300000 0.400000"
+				ortho="false"
+				fov="60.000000"
+				clippingNear="1.000000"
+				clippingFar="1000.000000"
+				fog="false"
+				fogDistance="0.000000" />
+		</Camera>
+		<Entity name="Entity0" file="../meshs/box.mesh">
+			<BoundingBox min="-5.000000 -5.000000 -5.000000" max="5.000000 5.000000 5.000000" />
+			<anim id="0" />
+			<active value="true" />
+			<transform 
+				position="20.156483 0.928886 28.300186"
 				rotation="0.000000 -0.000000 0.000000"
 				scale="1.000000 1.000000 1.000000" />
 			<properties 

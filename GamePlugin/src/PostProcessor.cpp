@@ -21,6 +21,7 @@
 #include "PostProcessor.h"
 #include <cmath>
 #include <string>
+#include <algorithm>
 
 using std::string;
 
@@ -96,6 +97,8 @@ bool PostProcessor::Render()
 	MEngine * engine = MEngine::getInstance(); // get the engine instance
 	MRenderingContext * render = engine->getRenderingContext(); // get the rendering context
 	MSystemContext * system = engine->getSystemContext();
+	unsigned int currentFrameBuffer = 0;
+   	render->getCurrentFrameBuffer(&currentFrameBuffer);
 
 	if(strcmp(engine->getRenderer()->getName(), "FixedRenderer") == 0)
 		return false;
@@ -122,11 +125,8 @@ bool PostProcessor::Render()
 	// enable camera with current screen ratio
 	camera->enable();
 
-#ifdef WIN32
-	MVector4 clearColor = *camera->getClearColor();
-#else
-    MVector3 clearColor = camera->getClearColor();
-#endif // WIN32
+
+	MVector3 clearColor = camera->getClearColor();
 
 	render->setClearColor(clearColor);
 
@@ -147,8 +147,22 @@ bool PostProcessor::Render()
 	// draw the scene
 	scene->draw(camera);
 
+    for(int i = 0; i < m_CameraLayersFX.size(); i++)
+    {
+        render->clear(M_BUFFER_DEPTH);
+        camera_layer_t layer = m_CameraLayersFX[i];
+
+        MScene* layerScene = level->getSceneByIndex(layer.scene);
+
+        //printf("sceneCam->name = %s\n", layer.camera->getName());
+        //printf("lscene->name = %s\n", layerScene->getName());
+
+       	layer.camera->enable();
+        layerScene->draw(layer.camera);
+    }
+
 	// finish render to texture
-	render->bindFrameBuffer(0);
+    render->bindFrameBuffer(currentFrameBuffer);
 
 	// draw the rendered textured with a shader effect
 	render->setViewport(0, 0, screenWidth, screenHeight);
@@ -163,7 +177,18 @@ bool PostProcessor::Render()
 
 	DrawQuad(MVector2((float)screenWidth, (float)screenHeight));
 	m_Shader->Clear();
-	false;
+
+	for(int i = 0; i < m_CameraLayersNoFX.size(); i++)
+    {
+        render->clear(M_BUFFER_DEPTH);
+        camera_layer_t layer = m_CameraLayersNoFX[i];
+
+        MScene* layerScene = level->getSceneByIndex(layer.scene);
+
+       	layer.camera->enable();
+        layerScene->draw(layer.camera);
+    }
+
 
 	return true;
 }
@@ -302,4 +327,22 @@ void PostProcessor::Clear()
 {
     m_FloatUniformList.clear();
     m_IntUniformList.clear();
+
+    m_CameraLayersFX.clear();
+    m_CameraLayersNoFX.clear();
+}
+
+void PostProcessor::AddCameraLayer(int scene, MOCamera* camera, bool pfxEnabled)
+{
+    camera_layer_t layer;
+    layer.camera = camera;
+    layer.scene = scene;
+
+    if(pfxEnabled) m_CameraLayersFX.push_back(layer);
+    else m_CameraLayersNoFX.push_back(layer);
+
+    printf("--> AddCameraLayer(%d, 0x%x, %d)\n", scene, camera, pfxEnabled);
+
+    printf("----> AddCameraSceneLayer: m_CameraLayersFX.size() == %d\n", m_CameraLayersFX.size());
+    printf("----> AddCameraSceneLayer: m_CameraLayersNoFX.size() == %d\n", m_CameraLayersNoFX.size());
 }

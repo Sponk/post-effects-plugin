@@ -50,6 +50,8 @@ public:
     void SetIntUniformValue(const char* name, int value);
     void SetFloatUniformValue(const char* name, float value);
 
+    void AddCameraLayer(int scene, MOCamera* camera, bool pfxEnabled);
+
     void Clear();
 
 private:
@@ -78,6 +80,15 @@ private:
 
 	vector<float_uniform_t> m_FloatUniformList;
 	vector<int_uniform_t> m_IntUniformList;
+
+    typedef struct
+    {
+        MOCamera* camera;
+        int scene;
+    }camera_layer_t;
+
+	vector<camera_layer_t> m_CameraLayersNoFX;
+	vector<camera_layer_t> m_CameraLayersFX;
 };
 
 #endif/*__POST_PROCESSOR_H__*/

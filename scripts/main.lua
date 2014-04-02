@@ -20,15 +20,16 @@ setFloatUniform("sampleDist", radialBlurDist)
 addFloatUniform("sampleStrength")
 setFloatUniform("sampleStrength", 2.1)
 
+guiScene = getScene("guiScene")
+addCameraLayer(getScene("mainScene"), getObject("Camera1"), 0)
+
 function onSceneUpdate()
 	if isKeyPressed("1") then
 		setIntUniform("bloomEnable", 1)
 		setIntUniform("radialBlurEnable", 0)
-		setFloatUniform("gamma", 0.9)
 	elseif isKeyPressed("2") then
 		setIntUniform("bloomEnable", 0)
 		setIntUniform("radialBlurEnable", 1)
-		setFloatUniform("gamma", 1.3)
 	end
 	
 	if isKeyPressed("UP") then
