@@ -54,9 +54,14 @@ public:
 
     void Clear();
 
+    // Skybox
+    void LoadSkyboxTextures(const char* path);
+    void EnableSkybox(bool enabled) { m_Skybox = enabled; }
+
 private:
 	void Set2D(unsigned int w, unsigned int h);
 	void DrawQuad(MVector2 scale);
+	void DrawQuad(MVector3 v1, MVector3 v2, MVector3 v3, MVector3 v4, MVector3 position, MVector3 rotation, MVector2* texCoords);
 
 	void SendUniforms();
 
@@ -89,6 +94,21 @@ private:
 
 	vector<camera_layer_t> m_CameraLayersNoFX;
 	vector<camera_layer_t> m_CameraLayersFX;
+
+	// Skybox
+	bool m_Skybox;
+	Shader* m_SkyboxShader;
+
+	struct Texture
+	{
+		MImage* m_Image;
+		unsigned int m_TexID;
+	};
+
+	Texture LoadTexture(const char* path);
+	void DrawSkybox(MVector3 position, MVector3 rotation);
+
+	Texture m_SkyboxTexture[6];
 };
 
 #endif/*__POST_PROCESSOR_H__*/

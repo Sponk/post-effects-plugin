@@ -20,10 +20,13 @@
 #ifndef __SHADER_H__
 #define __SHADER_H__
 
+#include <string>
+
 class Shader
 {
 public:
     Shader(const char* vertexName, const char* fragmentName);
+    Shader();
 
     void Apply();
     void Clear();
@@ -32,12 +35,20 @@ public:
 
     void SetValue(const char* name, int val) const;
     void SetValue(const char* name, float val) const;
+
+    void SetVertSrc(const char* src) {m_vertShadSrc = src; m_fromString = true;}
+    void SetPixSrc(const char* src) {m_pixShadSrc = src; m_fromString = true;}
+
 private:
     bool Init();
 
     unsigned int m_fx;
     unsigned int m_vertShad;
     unsigned int m_pixShad;
+
+    std::string m_vertShadSrc;
+    std::string m_pixShadSrc;
+    bool m_fromString;
 
     char m_filenames[2][256];
 };

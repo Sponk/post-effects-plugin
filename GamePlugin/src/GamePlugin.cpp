@@ -133,6 +133,43 @@ int addCameraLayer()
     return 1;
 }
 
+int enableSkybox()
+{
+	MEngine* engine = MEngine::getInstance();
+	Game* game = (Game*) engine->getGame();
+	MScriptContext* script = engine->getScriptContext();
+
+	if(script->getArgsNumber() != 1)
+		return 0;
+
+	bool enabled = (script->getInteger(0) == 1);
+
+	game->getPostProcessor()->EnableSkybox(enabled);
+
+	return 1;
+}
+
+int loadSkyboxTextures()
+{
+	MEngine* engine = MEngine::getInstance();
+	Game* game = (Game*) engine->getGame();
+	MScriptContext* script = engine->getScriptContext();
+
+	if(script->getArgsNumber() != 1)
+		return 0;
+
+	const char* path = script->getString(0);
+
+	char globalFilename[256];
+	getGlobalFilename(globalFilename, engine->getSystemContext()->getWorkingDirectory(), path);
+
+	printf("Skybox texture path: %s\n", globalFilename);
+
+	game->getPostProcessor()->LoadSkyboxTextures(globalFilename);
+
+	return 1;
+}
+
 extern "C" void StartPlugin(void)
 {
 	// get engine
@@ -149,6 +186,9 @@ extern "C" void StartPlugin(void)
     script->addFunction("enablePostProcessing", enablePostProcessing);
 
     script->addFunction("addCameraLayer", addCameraLayer);
+
+    script->addFunction("enableSkybox", enableSkybox);
+	script->addFunction("loadSkyboxTextures", loadSkyboxTextures);
 
 	game = new Game();
 	engine->setGame(game);

@@ -27,6 +27,45 @@ using std::string;
 
 #define MULT 1
 
+string skyboxVertShader =
+
+"attribute vec3 Vertex;"
+"attribute vec3 Normal;"
+"attribute vec3 Tangent;"
+"attribute vec3 Color;"
+
+"uniform mat4 TextureMatrix[4];"
+"uniform mat4 ModelViewMatrix;"
+"uniform mat4 ProjectionMatrix;"
+"uniform mat4 NormalMatrix;"
+"uniform mat4 ProjModelViewMatrix;"
+
+"varying vec2 texCoord;"
+"varying vec4 position, normal, tangent;"
+
+"attribute vec2 TexCoord;"
+
+"void main(void)"
+"{"
+	"normal = NormalMatrix * vec4(Normal, 1.0);"
+	"position = ModelViewMatrix * vec4(Vertex, 1.0);"
+	"gl_Position = ProjModelViewMatrix * vec4(Vertex, 1.0);"
+	"texCoord = TexCoord;"
+
+	"tangent = NormalMatrix * vec4(Tangent, 1.0);"
+"}\n";
+
+string skyboxFragShader =
+"uniform sampler2D Texture[5];"
+
+"varying vec2 texCoord;"
+"varying vec4 position, normal, tangent;"
+
+"void main(void)"
+"{"
+	"gl_FragColor = texture2D(Texture[0], texCoord);"
+"}\n";
+
 inline int Pow2(int x)
 {
 	--x;
@@ -85,7 +124,14 @@ PostProcessor::PostProcessor()
 	, m_ColourTexID(0)
 	, m_DepthTexID(0)
 	, m_Shader(0)
+	, m_SkyboxShader(0)
 {
+    for(int i = 0; i < 6; i++)
+	{
+		m_SkyboxTexture[i].m_Image = NULL;
+		m_SkyboxTexture[i].m_TexID = 0;
+	}
+
 	UpdateResolution();
 }
 
@@ -114,8 +160,6 @@ bool PostProcessor::Render()
 	if(! scene)
 		return false;
 
-	render->enableDepthTest();
-
 	// get camera
 	MOCamera * camera = scene->getCurrentCamera();
 
@@ -125,16 +169,13 @@ bool PostProcessor::Render()
 	// enable camera with current screen ratio
 	camera->enable();
 
-
 	MVector3 clearColor = camera->getClearColor();
-
 	render->setClearColor(clearColor);
 
 	// screen size
 	unsigned int screenWidth = 0;
 	unsigned int screenHeight = 0;
 	system->getScreenSize(&screenWidth, &screenHeight);
-
 
 	// render to texture
 	render->bindFrameBuffer(m_BufferID);
@@ -143,6 +184,14 @@ bool PostProcessor::Render()
 	render->setViewport(0, 0, m_Resolution, m_Resolution); // change viewport
 
 	render->clear(M_BUFFER_COLOR | M_BUFFER_DEPTH);
+
+  	render->disableDepthTest();
+
+    if(m_Skybox)
+        DrawSkybox(camera->getPosition(), camera->getRotation().getEulerAngles());
+
+	render->clear(M_BUFFER_DEPTH);
+	render->enableDepthTest();
 
 	// draw the scene
 	scene->draw(camera);
@@ -153,9 +202,6 @@ bool PostProcessor::Render()
         camera_layer_t layer = m_CameraLayersFX[i];
 
         MScene* layerScene = level->getSceneByIndex(layer.scene);
-
-        //printf("sceneCam->name = %s\n", layer.camera->getName());
-        //printf("lscene->name = %s\n", layerScene->getName());
 
        	layer.camera->enable();
         layerScene->draw(layer.camera);
@@ -188,7 +234,6 @@ bool PostProcessor::Render()
        	layer.camera->enable();
         layerScene->draw(layer.camera);
     }
-
 
 	return true;
 }
@@ -271,6 +316,60 @@ void PostProcessor::DrawQuad(MVector2 scale)
 	render->disableAttribArray(texcoordAttrib);
 }
 
+void PostProcessor::DrawQuad(MVector3 v1, MVector3 v2, MVector3 v3, MVector3 v4, MVector3 position, MVector3 rotation, MVector2* texCoords)
+{
+    MRenderingContext * render = MEngine::getInstance()->getRenderingContext();
+
+	int vertexAttrib;
+	int texcoordAttrib;
+	static MVector3 vertices[4];
+
+	vertices[0] = v1;
+	vertices[1] = v2;
+	vertices[3] = v3;
+	vertices[2] = v4;
+
+	// projmodelview matrix
+	static MMatrix4x4 ProjMatrix;
+	static MMatrix4x4 ModelViewMatrix;
+	static MMatrix4x4 ProjModelViewMatrix;
+
+	render->getProjectionMatrix(&ProjMatrix);
+	render->getModelViewMatrix(&ModelViewMatrix);
+
+	ModelViewMatrix.loadIdentity();
+	ModelViewMatrix.translate(position);
+
+    // First, rotate X and Y so Z points up
+	ModelViewMatrix.setRotationEuler(rotation.x,rotation.y, 0);
+
+    // Rotate around the Z axis
+	ModelViewMatrix.rotate(MVector3(0,0,1), rotation.z);
+
+	ProjModelViewMatrix = ProjMatrix * ModelViewMatrix;
+	render->sendUniformMatrix(m_SkyboxShader->ExposeShader(), "ProjModelViewMatrix", &ProjModelViewMatrix);
+
+	// Texture
+	int texIds[4] = { 0, 1, 2, 3 };
+	render->sendUniformInt(m_SkyboxShader->ExposeShader(), "Textures", texIds, 4);
+
+	// Vertex
+	render->getAttribLocation(m_SkyboxShader->ExposeShader(), "Vertex", &vertexAttrib);
+	render->setAttribPointer(vertexAttrib, M_FLOAT, 3, vertices);
+	render->enableAttribArray(vertexAttrib);
+
+	// TexCoord
+	render->getAttribLocation(m_SkyboxShader->ExposeShader(), "TexCoord", &texcoordAttrib);
+	render->setAttribPointer(texcoordAttrib, M_FLOAT, 2, texCoords);
+	render->enableAttribArray(texcoordAttrib);
+
+	// draw
+	render->drawArray(M_PRIMITIVE_TRIANGLE_STRIP, 0, 4);
+
+	render->disableAttribArray(vertexAttrib);
+	render->disableAttribArray(texcoordAttrib);
+}
+
 void PostProcessor::AddFloatUniform(const char* name)
 {
     float_uniform_t uniform;
@@ -330,6 +429,8 @@ void PostProcessor::Clear()
 
     m_CameraLayersFX.clear();
     m_CameraLayersNoFX.clear();
+
+    m_Skybox = false;
 }
 
 void PostProcessor::AddCameraLayer(int scene, MOCamera* camera, bool pfxEnabled)
@@ -345,4 +446,148 @@ void PostProcessor::AddCameraLayer(int scene, MOCamera* camera, bool pfxEnabled)
 
     printf("----> AddCameraSceneLayer: m_CameraLayersFX.size() == %d\n", m_CameraLayersFX.size());
     printf("----> AddCameraSceneLayer: m_CameraLayersNoFX.size() == %d\n", m_CameraLayersNoFX.size());
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Skybox functionality
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+PostProcessor::Texture PostProcessor::LoadTexture(const char* path)
+{
+	MRenderingContext* render = MEngine::getInstance()->getRenderingContext();
+	MSystemContext* system = MEngine::getInstance()->getSystemContext();
+	MEngine* engine = MEngine::getInstance();
+
+	Texture tex;
+    tex.m_Image = new MImage;
+
+	if(engine->getImageLoader()->loadData(path, tex.m_Image))
+	{
+		render->createTexture(&tex.m_TexID);
+		render->bindTexture(tex.m_TexID);
+
+		render->setTextureUWrapMode(M_WRAP_CLAMP);
+		render->setTextureVWrapMode(M_WRAP_CLAMP);
+
+		render->setTextureFilterMode(M_TEX_FILTER_NEAREST, M_TEX_FILTER_NEAREST);
+		render->texImage(0, tex.m_Image->getWidth(), tex.m_Image->getHeight(), M_UBYTE, M_RGB, tex.m_Image->getData());
+	}
+	else
+	{
+		printf("--> LoadTexture: Could not load image '%s'\n", path);
+		SAFE_DELETE(tex.m_Image);
+
+		tex.m_Image = NULL;
+	}
+
+	return tex;
+}
+
+void PostProcessor::LoadSkyboxTextures(const char* path)
+{
+	MRenderingContext* render = MEngine::getInstance()->getRenderingContext();
+	MSystemContext* system = MEngine::getInstance()->getSystemContext();
+	MEngine* engine = MEngine::getInstance();
+
+    SAFE_DELETE(m_SkyboxShader);
+    m_SkyboxShader = new Shader();
+    m_SkyboxShader->SetVertSrc(skyboxVertShader.c_str());
+    m_SkyboxShader->SetPixSrc(skyboxFragShader.c_str());
+
+	for(int i = 0; i < 6; i++)
+	{
+		if(m_SkyboxTexture[i].m_Image)
+			SAFE_DELETE(m_SkyboxTexture[i].m_Image);
+
+		if(m_SkyboxTexture[i].m_TexID)
+			render->deleteTexture(&m_SkyboxTexture[i].m_TexID);
+	}
+
+	string basePath = path;
+	char c = '0';
+    const char* names[] = {"negx", "negy", "negz", "posx", "posy", "posz"};
+
+#ifndef WIN32
+	for(int i = 0; i < 6; i++)
+	{
+		m_SkyboxTexture[i] = LoadTexture((basePath + "/" + names[i] + ".jpg").c_str());
+	}
+#else
+	for(int i = 0; i < 6; i++)
+	{
+		m_SkyboxTexture[i] = LoadTexture((basePath + "\\" + skyboxPosfix[i]).c_str());
+	}
+#endif
+}
+
+void PostProcessor::DrawSkybox(MVector3 position, MVector3 rotation)
+{
+    MRenderingContext* render = MEngine::getInstance()->getRenderingContext();
+
+    m_SkyboxShader->Apply();
+
+    static MVector2 texCoords[4];
+
+	texCoords[0] = MVector2(1, 0);
+	texCoords[1] = MVector2(0, 0);
+	texCoords[3] = MVector2(0, 1);
+	texCoords[2] = MVector2(1, 1);
+
+	// unten 1
+	render->bindTexture(m_SkyboxTexture[1].m_TexID);
+    DrawQuad(MVector3(-500.0f, 500.0f, -500.0f), MVector3(500.0f, 500.0f, -500.0f),
+            MVector3(500.0f,-500.0f, -500.0f), MVector3(-500.0f,-500.0f, -500.0f), position, -rotation, (MVector2*) &texCoords);
+
+	texCoords[0] = MVector2(1, 1);
+	texCoords[1] = MVector2(0, 1);
+	texCoords[3] = MVector2(0, 0);
+	texCoords[2] = MVector2(1, 0);
+
+    // oben 2
+   	render->bindTexture(m_SkyboxTexture[4].m_TexID);
+    DrawQuad(MVector3(-500.0f, 500.0f, 500.0f), MVector3(500.0f, 500.0f, 500.0f),
+            MVector3(500.0f,-500.0f, 500.0f), MVector3(-500.0f,-500.0f, 500.0f), position, -rotation, (MVector2*) &texCoords);
+
+    texCoords[0] = MVector2(0, 1);
+	texCoords[1] = MVector2(1, 1);
+	texCoords[3] = MVector2(1, 0);
+	texCoords[2] = MVector2(0, 0);
+
+    // vorne 3
+	render->bindTexture(m_SkyboxTexture[5].m_TexID);
+    DrawQuad(MVector3(500.0f, 500.0f, -500.0f), MVector3(-500.0f, 500.0f, -500.0f),
+            MVector3(-500.0f,500.0f, 500.0f), MVector3(500.0f,500.0f, 500.0f), position, -rotation, (MVector2*) &texCoords);
+
+    texCoords[0] = MVector2(1, 1);
+	texCoords[1] = MVector2(0, 1);
+	texCoords[3] = MVector2(0, 0);
+	texCoords[2] = MVector2(1, 0);
+
+    // hinten 4
+	render->bindTexture(m_SkyboxTexture[2].m_TexID);
+    DrawQuad(MVector3(500.0f, -500.0f, -500.0f), MVector3(-500.0f, -500.0f, -500.0f),
+            MVector3(-500.0f,-500.0f, 500.0f), MVector3(500.0f,-500.0f, 500.0f), position, -rotation, (MVector2*) &texCoords);
+
+    texCoords[0] = MVector2(0, 0);
+	texCoords[1] = MVector2(0, 1);
+	texCoords[3] = MVector2(1, 1);
+	texCoords[2] = MVector2(1, 0);
+
+	// links 5
+	render->bindTexture(m_SkyboxTexture[3].m_TexID);
+    DrawQuad(MVector3(-500.0f, 500.0f, 500.0f), MVector3(-500.0f, 500.0f, -500.0f),
+            MVector3(-500.0f,-500.0f, -500.0f), MVector3(-500.0f,-500.0f, 500.0f), position, -rotation, (MVector2*) &texCoords);
+
+
+    texCoords[3] = MVector2(0, 1);
+	texCoords[2] = MVector2(0, 0);
+	texCoords[1] = MVector2(1, 1);
+	texCoords[0] = MVector2(1, 0);
+
+    // rechts 6
+	render->bindTexture(m_SkyboxTexture[0].m_TexID);
+    DrawQuad(MVector3(500.0f, 500.0f, 500.0f), MVector3(500.0f, 500.0f, -500.0f),
+            MVector3(500.0f,-500.0f, -500.0f), MVector3(500.0f,-500.0f, 500.0f), position, -rotation, (MVector2*) &texCoords);
+
+    m_SkyboxShader->Clear();
 }

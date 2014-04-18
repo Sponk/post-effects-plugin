@@ -23,6 +23,9 @@ setFloatUniform("sampleStrength", 2.1)
 guiScene = getScene("guiScene")
 addCameraLayer(getScene("mainScene"), getObject("Camera1"), 0)
 
+enableSkybox(1)
+loadSkyboxTextures("maps/skybox");
+
 function onSceneUpdate()
 	if isKeyPressed("1") then
 		setIntUniform("bloomEnable", 1)
