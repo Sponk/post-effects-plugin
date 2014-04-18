@@ -341,7 +341,7 @@ void PostProcessor::DrawQuad(MVector3 v1, MVector3 v2, MVector3 v3, MVector3 v4,
 	ModelViewMatrix.translate(position);
 
     // First, rotate X and Y so Z points up
-	ModelViewMatrix.setRotationEuler(rotation.x,rotation.y, 0);
+	ModelViewMatrix.setRotationEuler(rotation.x,0, 0);
 
     // Rotate around the Z axis
 	ModelViewMatrix.rotate(MVector3(0,0,1), rotation.z);
