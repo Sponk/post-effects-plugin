@@ -309,6 +309,11 @@ void PostProcessor::DrawQuad(MVector2 scale)
 	render->setAttribPointer(texcoordAttrib, M_FLOAT, 2, texCoords);
 	render->enableAttribArray(texcoordAttrib);
 
+	// Width
+	render->sendUniformFloat(m_Shader->ExposeShader(), "Width", &scale.x, 1);
+	// Height
+	render->sendUniformFloat(m_Shader->ExposeShader(), "Height", &scale.y, 1);
+
 	// draw
 	render->drawArray(M_PRIMITIVE_TRIANGLE_STRIP, 0, 4);
 
